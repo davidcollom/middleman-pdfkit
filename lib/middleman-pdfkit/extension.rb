@@ -19,19 +19,44 @@ module Middleman
       end
 
       def after_build(builder)
-        @filenames.each do |pdfkit_filename|
-          html_filename = "build/#{pdfkit_filename}.html"
-          pdf_filename  = "build/#{pdfkit_filename}.pdf"
-          if File.exist?(html_filename)
-            generate_pdf(html_filename, pdf_filename)
-            puts "create", pdf_filename
-          else
-            puts "error", "#{pdf_filename} (HTML-File not found )", :red
+        # If filename is a classic Array, le's infer the output file name
+        if @filenames.is_a?(Array)
+
+          @filenames.each do |file|
+            build_pdf_for(file)
           end
+        
+        # If filename is a Hash, it provides the output file names
+        elsif @filenames.is_a?(Hash)
+
+          @filenames.each do |file, output|
+            build_pdf_for(file, output)
+          end
+
         end
       end
 
       private
+
+        def build_pdf_for input, output = nil
+          # Build two versions of input files and test them
+          file1 = "build/#{input}"
+          file2 = "build/#{input}.html"
+
+          # Default output filename if not specified
+          outfile ||= "build/#{output}"
+
+          # Test input flies presence
+          if File.exist?(file1)
+            puts "create", outfile
+            generate_pdf(file1, outfile)
+          elsif File.exist?(file2)
+            puts "create", outfile
+            generate_pdf(file2, outfile)
+          else
+            puts "error", "PDFKit: none of source HTML files [#{file1}, #{file2}] been found", :red
+          end
+        end
 
         def setup_filenames
           @filenames = options.filenames.empty? ? all_html_files : options.filenames
